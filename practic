@@ -1,0 +1,253 @@
++-------------------------+        +--------------------------+
+|        Book              |        |        Author            |
++-------------------------+        +--------------------------+
+| - Title: string          |        | - Name: string           |
+| - ISBN: string           |        | - Bio: string            |
+| - Author: List<Author>   | <----> |                          |
+| - PublicationYear: int   |        +--------------------------+
+| - AvailabilityStatus: bool |
++-------------------------+        
+| + ChangeAvailabilityStatus()   |
+| + GetBookInfo()             |
++-------------------------+
+
+          ^ 
+          |
+          |
++-------------------------+
+|        Loan              | <---+    +--------------------------+
++-------------------------+     |    |       User (abstract)     |
+| - Book: Book             |     +----> +--------------------------+
+| - Reader: Reader         |          | - Id: int                 |
+| - LoanDate: DateTime     |          | - Name: string            |
+| - ReturnDate: DateTime   |          | - Email: string           |
++-------------------------+          | - UserType: string        |
+| + IssueLoan()            |          +--------------------------+
+| + ReturnBook()           |          | + Register()             |
++-------------------------+          | + Login()                |
+                                      +--------------------------+
+                                                 |
+                                                 |
+                              +-----------------------------------+
+                              |               |                   |
+                      +------------------+  +------------------+  |
+                      |      Reader      |  |     Librarian    |  |
+                      +------------------+  +------------------+  |
+                      | + BorrowBook()   |  | + AddBook()      |  |
+                      | + ReturnBook()   |  | + RemoveBook()   |  |
+                      |                  |  | + ManageLoan()   |  |
+                      +------------------+  +------------------+  |
+                                                 |
+                                                 v
+                                        +-----------------------+
+                                        |       Library         |
+                                        +-----------------------+
+                                        | - Books: List<Book>   |
+                                        | - Users: List<User>   |
+                                        | - Loans: List<Loan>   |
+                                        +-----------------------+
+                                        | + AddBook()           |
+                                        | + RemoveBook()        |
+                                        | + RegisterUser()      |
+                                        | + BorrowBook()        |
+                                        | + ReturnBook()        |
+                                        | + GenerateReport()    |
+                                        +-----------------------+
+
+                                                    |
+                                                    v
+                                      +-----------------------+
+                                      |        Report         |
+                                      +-----------------------+
+                                      | - ReportType: string  |
+                                      | - Data: string        |
+                                      +-----------------------+
+                                      | + GenerateReport()    |
+                                      +-----------------------+
+
+
+
+
+
+// Интерфейс для пользователей библиотеки
+public interface IUser
+{
+    int Id { get; set; }
+    string Name { get; set; }
+    string Email { get; set; }
+    void Register();
+    void Login();
+}
+
+// Абстрактный класс для пользователя
+public abstract class User : IUser
+{
+    public int Id { get; set; }
+    public string Name { get; set; }
+    public string Email { get; set; }
+
+    public abstract void Register();
+    public abstract void Login();
+}
+
+// Класс для читателя
+public class Reader : User
+{
+    public List<Book> BorrowedBooks { get; set; } = new List<Book>();
+
+    public override void Register()
+    {
+        Console.WriteLine($"Reader {Name} registered.");
+    }
+
+    public override void Login()
+    {
+        Console.WriteLine($"Reader {Name} logged in.");
+    }
+
+    public void BorrowBook(Book book)
+    {
+        if (book.AvailabilityStatus)
+        {
+            BorrowedBooks.Add(book);
+            book.ChangeAvailabilityStatus(false);
+            Console.WriteLine($"{Name} borrowed {book.Title}.");
+        }
+        else
+        {
+            throw new Exception("Book is not available.");
+        }
+    }
+
+    public void ReturnBook(Book book)
+    {
+        if (BorrowedBooks.Contains(book))
+        {
+            BorrowedBooks.Remove(book);
+            book.ChangeAvailabilityStatus(true);
+            Console.WriteLine($"{Name} returned {book.Title}.");
+        }
+        else
+        {
+            throw new Exception("This book was not borrowed by the reader.");
+        }
+    }
+}
+
+// Класс для библиотекаря
+public class Librarian : User
+{
+    public override void Register()
+    {
+        Console.WriteLine($"Librarian {Name} registered.");
+    }
+
+    public override void Login()
+    {
+        Console.WriteLine($"Librarian {Name} logged in.");
+    }
+
+    public void AddBook(Library library, Book book)
+    {
+        library.AddBook(book);
+        Console.WriteLine($"{book.Title} added to the library.");
+    }
+
+    public void RemoveBook(Library library, Book book)
+    {
+        library.RemoveBook(book);
+        Console.WriteLine($"{book.Title} removed from the library.");
+    }
+}
+
+
+
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+Классы Book, Loan, Library
+public class Book
+{
+    public string Title { get; set; }
+    public string ISBN { get; set; }
+    public List<Author> Authors { get; set; } = new List<Author>();
+    public int PublicationYear { get; set; }
+    public bool AvailabilityStatus { get; set; } = true; // True - available, false - loaned
+
+    public void ChangeAvailabilityStatus(bool status)
+    {
+        AvailabilityStatus = status;
+    }
+
+    public string GetBookInfo()
+    {
+        return $"{Title}, {ISBN}, Published: {PublicationYear}";
+    }
+}
+
+public class Author
+{
+    public string Name { get; set; }
+    public string Bio { get; set; }
+}
+
+// Класс для выдачи книги
+public class Loan
+{
+    public Book Book { get; set; }
+    public Reader Reader { get; set; }
+    public DateTime LoanDate { get; set; }
+    public DateTime ReturnDate { get; set; }
+
+    public void IssueLoan()
+    {
+        LoanDate = DateTime.Now;
+        Console.WriteLine($"Loan issued for {Book.Title}.");
+    }
+
+    public void ReturnBook()
+    {
+        ReturnDate = DateTime.Now;
+        Console.WriteLine($"Book {Book.Title} returned.");
+    }
+}
+
+public class Library
+{
+    public List<Book> Books { get; set; } = new List<Book>();
+    public List<User> Users { get; set; } = new List<User>();
+    public List<Loan> Loans { get; set; } = new List<Loan>();
+
+    public void AddBook(Book book)
+    {
+        Books.Add(book);
+    }
+
+    public void RemoveBook(Book book)
+    {
+        Books.Remove(book);
+    }
+
+    public void RegisterUser(User user)
+    {
+        Users.Add(user);
+    }
+
+    public void BorrowBook(Reader reader, Book book)
+    {
+        if (book.AvailabilityStatus)
+        {
+            reader.BorrowBook(book);
+            Loans.Add(new Loan { Book = book, Reader = reader });
+        }
+        else
+        {
+            Console.WriteLine("Book is unavailable.");
+        }
+    }
+
+    public void ReturnBook(Reader reader, Book book)
+    {
+        reader.ReturnBook(book);
+    }
+}
+
+
